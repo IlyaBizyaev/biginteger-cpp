@@ -8,16 +8,16 @@ class BigInteger {
     friend std::ostream & operator <<(std::ostream &, const BigInteger &);
     friend std::istream & operator >>(std::istream &, BigInteger &);
 public:
-	explicit BigInteger(long long value = 0);
-	BigInteger(const BigInteger &);
-	BigInteger(BigInteger &&);
+    explicit BigInteger(long long value = 0);
+    BigInteger(const BigInteger &);
+    BigInteger(BigInteger &&);
     BigInteger& operator =(const BigInteger &);
 
-	BigInteger & operator +=(const BigInteger &);
-	BigInteger operator +(const BigInteger &) const;
+    BigInteger & operator +=(const BigInteger &);
+    BigInteger operator +(const BigInteger &) const;
 
-	BigInteger & operator -=(const BigInteger &);
-	BigInteger operator -(const BigInteger &) const;
+    BigInteger & operator -=(const BigInteger &);
+    BigInteger operator -(const BigInteger &) const;
     BigInteger operator -() const;
 
 private:
