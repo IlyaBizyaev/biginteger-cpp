@@ -64,6 +64,7 @@ BigInteger BigInteger::operator +(const BigInteger &other) const
         // pos + pos = sum
         string result(n + 1, '0');
         int carry = 0;
+
         for (size_t i = 0; i < n; ++i) {
             int sum = getDigit(i) + other.getDigit(i) + carry;
             if (sum >= 10) {
@@ -72,7 +73,7 @@ BigInteger BigInteger::operator +(const BigInteger &other) const
             } else {
                 carry = 0;
             }
-            result[result.length()-1-i] = '0' + sum;
+            result[result.length() - 1 - i] = '0' + sum;
         }
 
         if (carry) {
@@ -81,14 +82,14 @@ BigInteger BigInteger::operator +(const BigInteger &other) const
         } else {
             return BigInteger(result.substr(1));
         }
+    } else if (m_number.length() < other.m_number.length()
+               || (m_number.length() == other.m_number.length()
+                   && m_number[0] < other.m_number[0])) {
+        // pos + neg, where abs(pos) < abs(neg)
+        // Swap to substract smaller from bigger
+        return -(-other + -(*this));
     } else {
         // pos + neg = subtraction
-        if (m_number.length() < other.m_number.length()
-                || (m_number.length() == other.m_number.length() && m_number[0] < other.m_number[0])) {
-            // Swap to substract smaller from bigger
-            return -(-other + -(*this));
-        }
-
         int carry = 0;
         string result(n, '0');
 
@@ -102,9 +103,10 @@ BigInteger BigInteger::operator +(const BigInteger &other) const
                 carry = 1;
             }
 
-            result[result.length()-1-i] = '0' + (a - b);
+            result[result.length() - 1 - i] = '0' + (a - b);
         }
 
+        // Trim leading zeros
         result.erase(0, std::min(result.find_first_not_of('0'), result.size()-1));
         return BigInteger(result);
     }
@@ -150,6 +152,7 @@ istream & operator >>(istream &stream, BigInteger &bigint)
     string temp;
     stream >> temp;
     bool isNegative = false;
+
     if (!temp.length()) {
         temp = "0";
     } else if(temp[0] == '-' || temp[0] == '+') {
@@ -157,6 +160,7 @@ istream & operator >>(istream &stream, BigInteger &bigint)
         temp = temp.substr(1);
     }
 
+    // Trim leading zeros
     temp.erase(0, std::min(temp.find_first_not_of('0'), temp.size()-1));
 
     // 0 (zero) is not negative
