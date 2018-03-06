@@ -3,10 +3,13 @@
 
 #include <iostream>
 #include <string>
+using std::istream;
+using std::ostream;
+using std::string;
 
 class BigInteger {
-    friend std::ostream & operator <<(std::ostream &, const BigInteger &);
-    friend std::istream & operator >>(std::istream &, BigInteger &);
+    friend ostream & operator <<(ostream &, const BigInteger &);
+    friend istream & operator >>(istream &, BigInteger &);
 public:
     explicit BigInteger(long long value = 0);
     BigInteger(const BigInteger &);
@@ -21,11 +24,13 @@ public:
     BigInteger operator -() const;
 
 private:
-    std::string m_number;
+    int getDigit(size_t i) const;
+    BigInteger(string digits, bool isNegative = false);
+    string m_number;
     bool m_negative;
 };
 
-std::ostream & operator <<(std::ostream &, const BigInteger &);
-std::istream & operator >>(std::istream &, BigInteger &);
+ostream & operator <<(ostream &, const BigInteger &);
+istream & operator >>(istream &, BigInteger &);
 
 #endif // BIGINTEGER_H

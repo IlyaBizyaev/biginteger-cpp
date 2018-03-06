@@ -1,11 +1,10 @@
 #include <iostream>
 #include "biginteger.hpp"
 
-using namespace std;
-
 int main()
 {
-    // TODO
-    cout << "Hello World!" << endl;
+    BigInteger a(0), b(0);
+    std::cin >> a >> b;
+    std::cout << a + b << std::endl;
     return 0;
 }
