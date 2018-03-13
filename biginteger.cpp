@@ -1,125 +1,156 @@
 #include "biginteger.hpp"
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 
 //
 // Class implementation
 //
+
+const uint32_t MODULE = 1000000000;
 
 BigInteger::BigInteger(long long value) : m_negative(value < 0)
 {
     if (m_negative) {
         value = -value;
     }
-    std::stringstream ss;
-    ss << value;
-    m_number = ss.str();
+
+    do {
+        m_number.push_back(value % MODULE);
+        value /= MODULE;
+    } while (value / MODULE);
 }
 
-BigInteger::BigInteger(string digits, bool isNegative) : m_negative(isNegative)
+BigInteger::BigInteger(string value) : m_negative(false)
 {
-    for (auto c : digits) {
+    if (!value.empty() && (value[0] == '-' || value[0] == '+')) {
+        m_negative = (value[0] == '-');
+        value = value.substr(1);
+    }
+
+    if (value.empty()) {
+        value = "0";
+    }
+
+    for (auto c : value) {
         if (c < '0' || c > '9') {
             throw std::ios_base::failure("Provided string is not a number");
         }
     }
-    m_number = digits;
+
+    // Trim leading zeros
+    value.erase(0, std::min(value.find_first_not_of('0'), value.size()-1));
+
+    // 0 (zero) is not negative
+    if (m_negative && value == "0") {
+        m_negative = false;
+    }
+
+    for (int i = value.length(); i > 0; i -= 9) {
+        int32_t x = std::stoi(value.substr(std::max(0, i - 9), i - std::max(0, i - 9)));
+        m_number.push_back(x);
+    }
 }
 
 BigInteger::BigInteger(const BigInteger & bigint)
 {
-    m_number = bigint.m_number;
     m_negative = bigint.m_negative;
+    m_number = bigint.m_number;
 }
 
 BigInteger::BigInteger(BigInteger && bigint)
 {
-    m_number = string(std::move(bigint.m_number));
     m_negative = bigint.m_negative;
+    m_number = std::move(bigint.m_number);
 }
 
 BigInteger& BigInteger::operator =(const BigInteger & other)
 {
-    m_number = other.m_number;
     m_negative = other.m_negative;
+    m_number = other.m_number;
     return *this;
 }
 
 BigInteger & BigInteger::operator +=(const BigInteger &other)
 {
-    return *this = *this + other;
+    if (m_negative == other.m_negative) {
+        // neg + neg or pos + pos;
+        uint32_t carry = 0;
+
+        for (size_t i = 0; i < other.m_number.size(); ++i) {
+            if (i >= m_number.size()) {
+                m_number.push_back(0);
+            }
+
+            m_number[i] += other.m_number[i];
+            m_number[i] += carry;
+
+            carry = m_number[i] / MODULE;
+            m_number[i] %= MODULE;
+
+            for (size_t j = i + 1; carry; ++j) {
+                if (j >= m_number.size()) {
+                    m_number.push_back(0);
+                }
+
+                m_number[j] += carry;
+                carry = m_number[j] / MODULE;
+                m_number[j] %= MODULE;
+            }
+        }
+    } else if (m_negative && !other.m_negative) {
+        // neg + pos = pos + neg
+        *this = (other) + (*this);
+    } else if (m_number.size() < other.m_number.size()
+               || (m_number.size() == other.m_number.size()
+                   && m_number.back() < other.m_number.back())) {
+        // pos + neg, where abs(pos) < abs(neg)
+        // Swap to substract smaller from bigger
+        *this = -(-other + -(*this));
+    } else {
+        // pos + neg = subtraction
+        uint32_t carry = 0;
+
+        for (size_t i = 0; i < other.m_number.size() || carry; ++i) {
+            int64_t a = m_number.at(i);
+            a -= carry;
+            carry = 0;
+            int64_t b = i < other.m_number.size() ? other.m_number.at(i) : 0;
+
+            if (a < b) {
+                a += MODULE;
+                carry = 1;
+            }
+
+            m_number[i] = a - b;
+        }
+
+        // Trim leading zeros
+        while (m_number.back() == 0 && m_number.size() > 1) {
+            m_number.pop_back();
+        }
+    }
+
+    return *this;
 }
 
 BigInteger BigInteger::operator +(const BigInteger &other) const
 {
-    size_t n = std::max(m_number.length(), other.m_number.length());
-
-    if (m_negative && other.m_negative) {
-        // neg + neg = neg(sum);
-        return -(-other + -(*this));
-    } else if (m_negative && !other.m_negative) {
-        // neg + pos = pos + neg
-        return (other)+(*this);
-    } else if (!m_negative && !other.m_negative) {
-        // pos + pos = sum
-        string result(n + 1, '0');
-        int carry = 0;
-
-        for (size_t i = 0; i < n; ++i) {
-            int sum = getDigit(i) + other.getDigit(i) + carry;
-            if (sum >= 10) {
-                sum -= 10;
-                carry = 1;
-            } else {
-                carry = 0;
-            }
-            result[result.length() - 1 - i] = '0' + sum;
-        }
-
-        if (carry) {
-            result[0] = '0' + carry;
-            return BigInteger(result);
-        } else {
-            return BigInteger(result.substr(1));
-        }
-    } else if (m_number.length() < other.m_number.length()
-               || (m_number.length() == other.m_number.length()
-                   && m_number[0] < other.m_number[0])) {
-        // pos + neg, where abs(pos) < abs(neg)
-        // Swap to substract smaller from bigger
-        return -(-other + -(*this));
-    } else {
-        // pos + neg = subtraction
-        int carry = 0;
-        string result(n, '0');
-
-        for (size_t i = 0; i < n; ++i) {
-            int a = getDigit(i) - carry;
-            int b = other.getDigit(i);
-            carry = 0;
-
-            if (a < b) {
-                a += 10;
-                carry = 1;
-            }
-
-            result[result.length() - 1 - i] = '0' + (a - b);
-        }
-
-        // Trim leading zeros
-        result.erase(0, std::min(result.find_first_not_of('0'), result.size()-1));
-        return BigInteger(result);
-    }
+    BigInteger result = *this;
+    result += other;
+    return result;
 }
 
 BigInteger & BigInteger::operator -=(const BigInteger &other)
 {
-    return *this = *this - other;
+    return *this += (-other);
 }
 
 BigInteger BigInteger::operator -(const BigInteger &other) const
 {
-    return *this + (-other);
+    BigInteger result = *this;
+    result -= other;
+    return result;
 }
 
 BigInteger BigInteger::operator -() const
@@ -127,11 +158,6 @@ BigInteger BigInteger::operator -() const
     BigInteger temp = *this;
     temp.m_negative = !(m_negative);
     return temp;
-}
-
-int BigInteger::getDigit(size_t i) const
-{
-    return i < m_number.length() ? m_number.at(m_number.length() - i - 1) - '0' : 0;
 }
 
 //
@@ -143,7 +169,13 @@ ostream & operator <<(ostream &stream, const BigInteger &bigint)
     if (bigint.m_negative) {
         stream << '-';
     }
-    stream << bigint.m_number;
+
+    stream << bigint.m_number.back();
+
+    for (int i = bigint.m_number.size() - 2; i >= 0; --i) {
+        stream << std::setfill('0') << std::setw(9) << bigint.m_number.at(i);
+    }
+
     return stream;
 }
 
@@ -151,22 +183,6 @@ istream & operator >>(istream &stream, BigInteger &bigint)
 {
     string temp;
     stream >> temp;
-    bool isNegative = false;
-
-    if (!temp.length()) {
-        temp = "0";
-    } else if(temp[0] == '-' || temp[0] == '+') {
-        isNegative = (temp[0] == '-');
-        temp = temp.substr(1);
-    }
-
-    // Trim leading zeros
-    temp.erase(0, std::min(temp.find_first_not_of('0'), temp.size()-1));
-
-    // 0 (zero) is not negative
-    if (isNegative && temp == "0") {
-        isNegative = false;
-    }
-    bigint = BigInteger(temp, isNegative);
+    bigint = BigInteger(temp);
     return stream;
 }

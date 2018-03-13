@@ -3,15 +3,18 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 using std::istream;
 using std::ostream;
 using std::string;
+using std::vector;
 
 class BigInteger {
     friend ostream & operator <<(ostream &, const BigInteger &);
     friend istream & operator >>(istream &, BigInteger &);
 public:
     explicit BigInteger(long long value = 0);
+    explicit BigInteger(string value);
     BigInteger(const BigInteger &);
     BigInteger(BigInteger &&);
     BigInteger& operator =(const BigInteger &);
@@ -25,8 +28,7 @@ public:
 
 private:
     int getDigit(size_t i) const;
-    BigInteger(string digits, bool isNegative = false);
-    string m_number;
+    vector<uint32_t> m_number;
     bool m_negative;
 };
 

@@ -3,7 +3,7 @@
 
 int main()
 {
-    BigInteger a(0), b(0);
+    BigInteger a, b;
     std::cin >> a >> b;
     std::cout << a + b << std::endl;
     return 0;
