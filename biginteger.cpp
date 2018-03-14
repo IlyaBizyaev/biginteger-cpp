@@ -1,6 +1,5 @@
 #include "biginteger.hpp"
 #include <iostream>
-#include <sstream>
 #include <iomanip>
 
 //
@@ -18,7 +17,7 @@ BigInteger::BigInteger(long long value) : m_negative(value < 0)
     do {
         m_number.push_back(value % MODULE);
         value /= MODULE;
-    } while (value / MODULE);
+    } while (value);
 }
 
 BigInteger::BigInteger(string value) : m_negative(false)
@@ -77,26 +76,17 @@ BigInteger & BigInteger::operator +=(const BigInteger &other)
         // neg + neg or pos + pos;
         uint32_t carry = 0;
 
-        for (size_t i = 0; i < other.m_number.size(); ++i) {
+        for (size_t i = 0; i < other.m_number.size() || carry; ++i) {
             if (i >= m_number.size()) {
                 m_number.push_back(0);
             }
 
-            m_number[i] += other.m_number[i];
-            m_number[i] += carry;
+            int64_t a = m_number.at(i);
+            a += i < other.m_number.size() ? other.m_number.at(i) : 0;
+            a += carry;
 
-            carry = m_number[i] / MODULE;
-            m_number[i] %= MODULE;
-
-            for (size_t j = i + 1; carry; ++j) {
-                if (j >= m_number.size()) {
-                    m_number.push_back(0);
-                }
-
-                m_number[j] += carry;
-                carry = m_number[j] / MODULE;
-                m_number[j] %= MODULE;
-            }
+            carry = a / MODULE;
+            m_number[i] = a % MODULE;
         }
     } else if (m_negative && !other.m_negative) {
         // neg + pos = pos + neg
@@ -136,9 +126,7 @@ BigInteger & BigInteger::operator +=(const BigInteger &other)
 
 BigInteger BigInteger::operator +(const BigInteger &other) const
 {
-    BigInteger result = *this;
-    result += other;
-    return result;
+    return BigInteger(*this) += other;
 }
 
 BigInteger & BigInteger::operator -=(const BigInteger &other)
@@ -148,9 +136,7 @@ BigInteger & BigInteger::operator -=(const BigInteger &other)
 
 BigInteger BigInteger::operator -(const BigInteger &other) const
 {
-    BigInteger result = *this;
-    result -= other;
-    return result;
+    return BigInteger(*this) -= other;
 }
 
 BigInteger BigInteger::operator -() const
