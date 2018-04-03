@@ -3,8 +3,8 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += main.cpp \
-    biginteger.cpp
+SOURCES += main.cpp
 
 HEADERS += \
-    biginteger.hpp
+    biginteger.hpp \
+    biginteger.tpp
