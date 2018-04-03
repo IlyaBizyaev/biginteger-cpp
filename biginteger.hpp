@@ -47,7 +47,7 @@ public:
     BigInteger operator /(const T &) const;
 
     size_t size() const;
-    T getDigit(size_T i) const;
+    T getDigit(size_t i) const;
     T operator[](size_t i) const;
     bool isNegative() const;
     void setNegative(bool negative = true);
@@ -56,10 +56,10 @@ public:
 private:
     explicit BigInteger(vector<T> sparse_values);
     BigInteger & divide_with_remainder(const T &, T * remainder = nullptr);
-    static int digitsInT();
-    static int bitsPerDigit();
-    void setDigit(size_t i, T digit);
-    void addDigit(T digit);
+    constexpr static int digitsInT();
+    constexpr static int bitsPerDigit();
+    void setDigit(size_t i, const T &digit);
+    void addDigit(const T &digit);
 
     vector<T> m_number;
     size_t m_digits;
