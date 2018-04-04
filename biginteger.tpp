@@ -20,7 +20,7 @@ BigInteger<T, Base>::BigInteger(long long value) : m_negative(value < 0)
     m_digits = 0;
 
     do {
-        addDigit(value % Base);
+        setDigit(size(), value % Base);
         value /= Base;
     } while (value);
 }
@@ -29,16 +29,37 @@ template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
-    vector<T> sparseDigits;
-    BigInteger temp(*this);
+    vector<NewT> newDigits;
+    BigInteger<T, Base> temp(*this);
 
-    while (!temp.isZero()) {
-        T remainder = 0;
-        temp.divide_with_remainder(NewBase, &remainder);
-        sparseDigits.push_back(remainder);
-    }
+    do { // TODO: consider do-while for zero
+        unsigned long long collect = 0;
 
-    BigInteger<NewT, NewBase> result(sparseDigits);
+        vector<unsigned long long> sparseDigits;
+
+        for (int i = temp.size() - 1; i >= 0; --i) {
+            collect = collect * Base + temp.getDigit(i);
+
+            if (collect >= NewBase) {
+                sparseDigits.push_back(collect / NewBase);
+                collect %= NewBase;
+            } else if (!sparseDigits.empty()){
+                sparseDigits.push_back(0);
+            }
+        }
+
+        if (sparseDigits.empty()) {
+            sparseDigits.push_back(0);
+        }
+
+        std::reverse(sparseDigits.begin(), sparseDigits.end());
+        temp = BigInteger<T, Base>(sparseDigits);
+        temp.setNegative(m_negative);
+
+        newDigits.push_back((NewT)collect);
+    } while (!temp.isZero());
+
+    BigInteger<NewT, NewBase> result(newDigits);
     result.setNegative(m_negative);
     return result;
 }
@@ -71,7 +92,7 @@ BigInteger<T, Base>::BigInteger(string value)
         negative = false;
     }
 
-    vector<T> sparseDigits;
+    vector<uint32_t> sparseDigits;
     for (int i = value.length(); i > 0; i -= 9) {
         int32_t x = std::stoi(value.substr(std::max(0, i - 9), i - std::max(0, i - 9)));
         sparseDigits.push_back(x);
@@ -84,10 +105,11 @@ BigInteger<T, Base>::BigInteger(string value)
 }
 
 template<typename T, size_t Base>
-BigInteger<T, Base>::BigInteger(vector<T> sparseDigits)  : m_digits(0), m_negative(false)
+template<typename digitT>
+BigInteger<T, Base>::BigInteger(vector<digitT> sparseDigits) : m_digits(0), m_negative(false)
 {
     for (auto i : sparseDigits) {
-        addDigit(i % Base);
+        setDigit(size(), i % Base);
     }
 }
 
@@ -128,8 +150,8 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
             T b = i < other.size() ? other[i] : 0;
 
             T current;
-            if (a > Base - b - carry) {
-                current = std::max(a, b) - Base + std::min(a, b) + carry;
+            if (a >= Base - b - carry) {
+                current = a - (Base - b - carry);
                 carry = 1;
             } else {
                 current = a + b + carry;
@@ -176,7 +198,7 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
         }
 
         // Trim leading zeros
-        for (size_t i = size() - 1; i >= 0 && !getDigit(i); --i) {
+        for (size_t i = size() - 1; !isZero() && i >= 0 && !getDigit(i); --i) {
             --m_digits;
         }
 
@@ -216,73 +238,6 @@ BigInteger<T, Base> BigInteger<T, Base>::operator -() const
 }
 
 template<typename T, size_t Base>
-BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const T &other)
-{
-    T carry = 0;
-
-    for (size_t i = 0; i < size() || carry; ++i) {
-        T temp = getDigit(i) + carry;
-        temp *= other;
-        carry = temp / Base;
-        setDigit(i, temp % Base);
-    }
-
-    return *this;
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> BigInteger<T, Base>::operator *(const T &other) const
-{
-    return BigInteger(*this) *= other;
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> & BigInteger<T, Base>::divide_with_remainder(const T &other, T * remainder)
-{
-    if (!other) {
-        throw std::overflow_error("Division by zero");
-    }
-
-    size_t collect = 0;
-    vector<T> sparseDigits;
-
-    for (int i = size() - 1; i >= 0; --i) {
-        collect = collect * Base + getDigit(i);
-
-        if (collect >= other) {
-            sparseDigits.push_back(collect / other);
-            collect %= other;
-        }
-    }
-
-    if (sparseDigits.empty()) {
-        sparseDigits.push_back(0);
-    }
-
-    if (remainder != nullptr) {
-        *remainder = collect;
-    }
-
-    std::reverse(sparseDigits.begin(), sparseDigits.end());
-    BigInteger temp(sparseDigits);
-    temp.setNegative(m_negative);
-
-    return *this = temp;
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> & BigInteger<T, Base>::operator /=(const T &other)
-{
-    return divide_with_remainder(other);
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> BigInteger<T, Base>::operator /(const T &other) const
-{
-    return BigInteger(*this) /= other;
-}
-
-template<typename T, size_t Base>
 size_t BigInteger<T, Base>::size() const
 {
     return m_digits;
@@ -293,7 +248,12 @@ T BigInteger<T, Base>::getDigit(size_t i) const
 {
     T result = m_number[i / digitsInT()];
     result >>= (i % digitsInT()) * bitsPerDigit();
-    return result % Base;
+
+    if (digitsInT() == 1) {
+        return result % Base;
+    } else {
+        return result & ((1 << bitsPerDigit()) - 1);
+    }
 }
 
 template<typename T, size_t Base>
@@ -303,35 +263,30 @@ T BigInteger<T, Base>::operator[](size_t i) const
 }
 
 template<typename T, size_t Base>
-void BigInteger<T, Base>::setDigit(size_t i, const T &digit)
+void BigInteger<T, Base>::setDigit(size_t i, T digit)
 {
     if (i >= size()) {
         for (size_t t = size(); t <= i; ++t) {
-            addDigit(0);
+            if (t % digitsInT() == 0) {
+                m_number.push_back(0);
+            }
+            ++m_digits;
         }
     }
 
     size_t j = i / digitsInT();
 
     if (digitsInT() == 1) {
-        m_number[j] = digit;
+        m_number[j] = digit % Base;
     } else {
         size_t shift = i % digitsInT() * bitsPerDigit();
-        T clearMask = ~(((1 << bitsPerDigit()) - 1) << shift);
+        T clearMask = (1 << bitsPerDigit()) - 1;
+        digit &= clearMask;
+
+        clearMask = ~(clearMask << shift);
         m_number[j] &= clearMask;
         m_number[j] |= digit << shift;
     }
-}
-
-template<typename T, size_t Base>
-void BigInteger<T, Base>::addDigit(const T &digit)
-{
-    if (size() % digitsInT() == 0) {
-        m_number.push_back(digit);
-    } else {
-        setDigit(size(), digit);
-    }
-    ++m_digits;
 }
 
 template<typename T, size_t Base>
@@ -363,14 +318,7 @@ constexpr int BigInteger<T, Base>::digitsInT()
 template<typename T, size_t Base>
 constexpr int BigInteger<T, Base>::bitsPerDigit()
 {
-    size_t temp = Base;
-    int bits = 0;
-    while (temp) {
-        temp >>= 1;
-        ++bits;
-    }
-
-    return bits;
+    return std::ceil(std::log2(Base));
 }
 
 //
