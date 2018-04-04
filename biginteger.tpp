@@ -32,7 +32,7 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     vector<NewT> newDigits;
     BigInteger<T, Base> temp(*this);
 
-    do { // TODO: consider do-while for zero
+    do {
         unsigned long long collect = 0;
 
         vector<unsigned long long> sparseDigits;
