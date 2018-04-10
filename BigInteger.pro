@@ -8,3 +8,5 @@ SOURCES += main.cpp
 HEADERS += \
     biginteger.hpp \
     biginteger.tpp
+
+LIBS += -lgmp

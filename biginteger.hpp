@@ -43,6 +43,7 @@ public:
     size_t size() const;
     T getDigit(size_t i) const;
     T operator[](size_t i) const;
+    string str() const;
 
     bool isNegative() const;
     void setNegative(bool negative = true);

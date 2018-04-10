@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <sstream>
 #include <cmath>
 
 //
@@ -33,9 +34,9 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     BigInteger<T, Base> temp(*this);
 
     do {
-        unsigned long long collect = 0;
+        __uint128_t collect = 0;
 
-        vector<unsigned long long> sparseDigits;
+        vector<__uint128_t> sparseDigits;
 
         for (int i = temp.size() - 1; i >= 0; --i) {
             collect = collect * Base + temp.getDigit(i);
@@ -150,7 +151,7 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
             T b = i < other.size() ? other[i] : 0;
 
             T current;
-            if (a >= Base - b - carry) {
+            if (a >= T(Base) - b - carry) {
                 current = a - (Base - b - carry);
                 carry = 1;
             } else {
@@ -246,6 +247,17 @@ size_t BigInteger<T, Base>::size() const
 template<typename T, size_t Base>
 T BigInteger<T, Base>::getDigit(size_t i) const
 {
+    if (i >= size()) {
+        std::ostringstream error;
+        error << "Requested digit " << i << ", but size is " << size();
+        throw std::out_of_range(error.str());
+    }
+    return (*this)[i];
+}
+
+template<typename T, size_t Base>
+T BigInteger<T, Base>::operator[](size_t i) const
+{
     T result = m_number[i / digitsInT()];
     result >>= (i % digitsInT()) * bitsPerDigit();
 
@@ -257,9 +269,23 @@ T BigInteger<T, Base>::getDigit(size_t i) const
 }
 
 template<typename T, size_t Base>
-T BigInteger<T, Base>::operator[](size_t i) const
+string BigInteger<T, Base>::str() const
 {
-    return getDigit(i);
+    std::ostringstream result;
+
+    if (m_negative) {
+        result << '-';
+    }
+
+    BigInteger<uint32_t, IO_RADIX> temp = static_cast<BigInteger<uint32_t, IO_RADIX>>(*this);
+
+    result << temp[temp.size() - 1];
+
+    for (int i = temp.size() - 2; i >= 0; --i) {
+        result << std::setfill('0') << std::setw(9) << temp[i];
+    }
+
+    return result.str();
 }
 
 template<typename T, size_t Base>
@@ -328,18 +354,7 @@ constexpr int BigInteger<T, Base>::bitsPerDigit()
 template<typename T, size_t Base>
 ostream & operator << (ostream &stream, const BigInteger<T, Base> &bigint)
 {
-    if (bigint.m_negative) {
-        stream << '-';
-    }
-
-    BigInteger<uint32_t, IO_RADIX> temp = static_cast<BigInteger<uint32_t, IO_RADIX>>(bigint);
-
-    stream << temp[temp.size() - 1];
-
-    for (int i = temp.size() - 2; i >= 0; --i) {
-        stream << std::setfill('0') << std::setw(9) << temp[i];
-    }
-
+    stream << bigint.str();
     return stream;
 }
 
