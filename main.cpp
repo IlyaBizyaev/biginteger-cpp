@@ -97,9 +97,17 @@ inline int randomInt(int min, int max)
 
 string randomBIString()
 {
+    bool negative = randomInt(0, 1);
     int length = randomInt(1, 1000);
     string result(length, '0');
-    for (int i = 0; i < length; ++i) {
+
+    int i = 0;
+    if (negative) {
+        result[0] = '-';
+        ++i;
+    }
+
+    for (; i < length; ++i) {
         result[i] = randomInt('0', '9');
     }
     return result;
