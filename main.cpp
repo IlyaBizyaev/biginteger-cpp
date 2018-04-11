@@ -79,6 +79,11 @@ bool test(const string &a, const string &b)
     mpz_sub(gmpResult, gmpA, gmpB);
     success &= compare<testType, testBase>(biResult, gmpResult);
 
+    /*cout << "Multiplication:\t";
+    biResult = biAConv * biBConv;
+    mpz_mul(gmpResult, gmpA, gmpB);
+    success &= compare<testType, testBase>(biResult, gmpResult);*/
+
     mpz_clear(gmpA);
     mpz_clear(gmpB);
     mpz_clear(gmpResult);

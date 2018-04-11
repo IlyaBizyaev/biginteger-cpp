@@ -30,6 +30,10 @@ template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
+    if (std::is_same<NewT, T>::value && NewBase == Base) {
+        return BigInteger<NewT, NewBase>(*this);
+    }
+
     vector<NewT> newDigits;
     BigInteger<T, Base> temp(*this);
 
@@ -142,7 +146,7 @@ BigInteger<T, Base>& BigInteger<T, Base>::operator =(const BigInteger<T, Base> &
 template<typename T, size_t Base>
 BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base> &other)
 {
-    if (m_negative == other.m_negative) {
+    if (isNegative() == other.isNegative()) {
         // neg + neg or pos + pos;
         T carry = 0;
 
@@ -161,12 +165,10 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
 
             setDigit(i, current);
         }
-    } else if (m_negative && !other.m_negative) {
+    } else if (isNegative() && !other.isNegative()) {
         // neg + pos = pos + neg
         *this = (other) + (*this);
-    } else if (m_number.size() < other.m_number.size()
-               || (m_number.size() == other.m_number.size()
-                   && m_number.back() < other.m_number.back())) {
+    } else if (other.abs() > (*this).abs()) {
         // pos + neg, where abs(pos) < abs(neg)
         // Swap to substract smaller from bigger
         *this = -(-other + -(*this));
@@ -181,32 +183,22 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
             if (carry > a) {
                 a += Base - carry;
                 carry = 1;
-            } else {
+            } else if (carry) {
                 a -= carry;
                 carry = 0;
             }
 
-            T current;
-
-            if (a < b) {
-                current = a + (Base - b);
+            if (b > a) {
+                a += Base - b;
                 carry = 1;
             } else {
-                current = a - b;
+                a -= b;
             }
 
-            setDigit(i, current);
+            setDigit(i, a);
         }
 
-        // Trim leading zeros
-        for (size_t i = size() - 1; !isZero() && i >= 0 && !getDigit(i); --i) {
-            --m_digits;
-        }
-
-        size_t usedCells = std::ceil(double(size()) / digitsInT());
-        if (usedCells < m_number.size()) {
-            m_number.resize(usedCells);
-        }
+        trim();
     }
 
     return *this;
@@ -236,6 +228,129 @@ BigInteger<T, Base> BigInteger<T, Base>::operator -() const
     BigInteger temp = *this;
     temp.m_negative = !(m_negative);
     return temp;
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const T &other)
+{
+    __uint128_t carry = 0;
+    size_t n = size();
+
+    for (size_t i = 0; i < n || carry; ++i) {
+        __uint128_t temp = (i < n ? getDigit(i) : 0) * other + carry;
+        carry = temp / Base;
+        setDigit(i, temp % Base);
+    }
+
+    trim();
+    setNegative(isNegative() ^ (other < 0));
+    return *this;
+}
+
+template<typename T>
+void split(BigInteger<T, 10> & bigint, size_t m, BigInteger<T, 10> & high, BigInteger<T, 10> & low)
+{
+    vector<T> digitsLow, digitsHigh;
+    for (size_t i = 0; i < bigint.size(); ++i) {
+        if (i < m) {
+            digitsLow.push_back(bigint[i]);
+        } else {
+            digitsHigh.push_back(bigint[i]);
+        }
+    }
+    if (digitsHigh.empty()) {
+        digitsHigh.push_back(0);
+    }
+
+    low = BigInteger<T, 10>(digitsLow);
+    high = BigInteger<T, 10>(digitsHigh);
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base> &other)
+{
+    BigInteger<T, 10> a10 = static_cast< BigInteger<T, 10> >(*this);
+    BigInteger<T, 10> b10 = static_cast< BigInteger<T, 10> >(other);
+    bool negative = (this->isNegative() != other.isNegative());
+
+    if (a10.size() == 1) {
+        *this = static_cast< BigInteger<T, Base> >(b10 * a10.getDigit(0));
+    } else if (b10.size() == 1) {
+        *this =  static_cast< BigInteger<T, Base> >(a10 * b10.getDigit(0));
+    } else {
+        size_t m = std::max(a10.size(), b10.size()) >> 1;
+        /* split the digit sequences about the middle */
+        BigInteger<T, 10> high1, low1, high2, low2;
+        split(a10, m, high1, low1);
+        split(b10, m, high2, low2);
+        /* 3 calls made to numbers approximately half the size */
+        BigInteger<T, 10> z0 = low1 * low2;
+        BigInteger<T, 10> z1 = (low1 + high1) * (low2 + high2);
+        BigInteger<T, 10> z2 = high1 * high2;
+
+        using std::pow;
+        *this = static_cast< BigInteger<T, Base> >((z2 * pow(10, m << 1)) + ((z1 - z2 - z0) * pow(10, m)) + z0);
+    }
+
+    setNegative(negative);
+    return *this;
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> BigInteger<T, Base>::operator *(const T &other) const
+{
+    return BigInteger(*this) *= other;
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> BigInteger<T, Base>::operator *(const BigInteger<T, Base> &other) const
+{
+    return BigInteger(*this) *= other;
+}
+
+template<typename T, size_t Base>
+bool BigInteger<T, Base>::operator==(const BigInteger<T, Base> &other) const {
+    return m_negative == other.m_negative
+            && m_digits == other.m_digits
+            && m_number == other.m_number;
+}
+
+template<typename T, size_t Base>
+bool BigInteger<T, Base>::operator>(const BigInteger<T, Base> &other) const {
+    if (*this == other) {
+        return false;
+    }
+
+    if (!isNegative() && other.isNegative()) {
+        return true;
+    }
+
+    if (isNegative() && !other.isNegative()) {
+        return false;
+    }
+
+    bool absGreater = false;
+    if (size() > other.size()) {
+        absGreater = true;
+    } else if (size() == other.size()) {
+        for (int i = size() - 1; i >= 0; --i) {
+            T a = getDigit(i);
+            T b = other.getDigit(i);
+            if (a > b) {
+                absGreater = true;
+                break;
+            } else if (a < b) {
+                break;
+            }
+        }
+    }
+
+    return isNegative() ^ absGreater;
+}
+
+template<typename T, size_t Base>
+bool BigInteger<T, Base>::operator<(const BigInteger<T, Base> &other) const {
+    return !(*this == other) && !(*this > other);
 }
 
 template<typename T, size_t Base>
@@ -289,6 +404,22 @@ string BigInteger<T, Base>::str() const
 }
 
 template<typename T, size_t Base>
+string BigInteger<T, Base>::repr() const
+{
+    std::ostringstream result;
+
+    if (m_negative) {
+        result << '-';
+    }
+
+    for (int i = size() - 1; i >= 0; --i) {
+        result << getDigit(i);
+    }
+
+    return result.str();
+}
+
+template<typename T, size_t Base>
 void BigInteger<T, Base>::setDigit(size_t i, T digit)
 {
     if (i >= size()) {
@@ -316,6 +447,20 @@ void BigInteger<T, Base>::setDigit(size_t i, T digit)
 }
 
 template<typename T, size_t Base>
+void BigInteger<T, Base>::trim()
+{
+    // Trim leading zeros
+    for (size_t i = size() - 1; !isZero() && i >= 0 && !getDigit(i); --i) {
+        --m_digits;
+    }
+
+    size_t usedCells = std::ceil(double(size()) / digitsInT());
+    if (usedCells < m_number.size()) {
+        m_number.resize(usedCells);
+    }
+}
+
+template<typename T, size_t Base>
 bool BigInteger<T, Base>::isNegative() const
 {
     return m_negative;
@@ -327,6 +472,12 @@ void BigInteger<T, Base>::setNegative(bool negative)
     if (!isZero()) {
         m_negative = negative;
     }
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> BigInteger<T, Base>::abs() const
+{
+    return isNegative() ? -(*this) : *this;
 }
 
 template<typename T, size_t Base>
