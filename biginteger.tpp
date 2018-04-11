@@ -152,7 +152,7 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
 
         for (size_t i = 0; i < other.size() || carry; ++i) {
             T a = i < size() ? getDigit(i) : 0;
-            T b = i < other.size() ? other[i] : 0;
+            T b = i < other.size() ? other.getDigit(i) : 0;
 
             T current;
             if (a >= T(Base) - b - carry) {
@@ -178,7 +178,7 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
 
         for (size_t i = 0; i < other.size() || carry; ++i) {
             T a = getDigit(i);
-            T b = i < other.size() ? other[i] : 0;
+            T b = i < other.size() ? other.getDigit(i) : 0;
 
             if (carry > a) {
                 a += Base - carry;
@@ -197,7 +197,6 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator +=(const BigInteger<T, Base>
 
             setDigit(i, a);
         }
-
         trim();
     }
 
@@ -253,9 +252,9 @@ void split(BigInteger<T, 10> & bigint, size_t m, BigInteger<T, 10> & high, BigIn
     vector<T> digitsLow, digitsHigh;
     for (size_t i = 0; i < bigint.size(); ++i) {
         if (i < m) {
-            digitsLow.push_back(bigint[i]);
+            digitsLow.push_back(bigint.getDigit(i));
         } else {
-            digitsHigh.push_back(bigint[i]);
+            digitsHigh.push_back(bigint.getDigit(i));
         }
     }
     if (digitsHigh.empty()) {
@@ -454,10 +453,17 @@ void BigInteger<T, Base>::trim()
         --m_digits;
     }
 
+    // Remove empty cells
     size_t usedCells = std::ceil(double(size()) / digitsInT());
     if (usedCells < m_number.size()) {
         m_number.resize(usedCells);
     }
+}
+
+template<typename T, size_t Base>
+BigInteger<T, Base> BigInteger<T, Base>::abs() const
+{
+    return isNegative() ? -(*this) : *this;
 }
 
 template<typename T, size_t Base>
@@ -472,12 +478,6 @@ void BigInteger<T, Base>::setNegative(bool negative)
     if (!isZero()) {
         m_negative = negative;
     }
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> BigInteger<T, Base>::abs() const
-{
-    return isNegative() ? -(*this) : *this;
 }
 
 template<typename T, size_t Base>

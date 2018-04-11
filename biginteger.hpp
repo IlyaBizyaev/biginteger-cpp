@@ -61,8 +61,8 @@ public:
 
     bool isNegative() const;
     void setNegative(bool negative = true);
-    BigInteger abs() const;
     bool isZero() const;
+    BigInteger abs() const;
 
 private:
     void setDigit(size_t i, T digit);
