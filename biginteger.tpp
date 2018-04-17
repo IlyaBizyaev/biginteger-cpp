@@ -273,41 +273,16 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base>
     BigInteger<T, 10> b10 = static_cast< BigInteger<T, 10> >(other);
     bool negative = (this->isNegative() != other.isNegative());
 
-    /*if (a10.size() == 1) {
-        *this = static_cast< BigInteger<T, Base> >(b10 * a10.getDigit(0));
-    } else if (b10.size() == 1) {
-        *this =  static_cast< BigInteger<T, Base> >(a10 * b10.getDigit(0));
-    } else {
-        size_t m = std::max(a10.size(), b10.size()) >> 1;
-        BigInteger<T, 10> high1, low1, high2, low2;
-        split(a10, m, high1, low1);
-        split(b10, m, high2, low2);
-        BigInteger<T, 10> z0 = low1 * low2;
-        BigInteger<T, 10> z1 = (low1 + high1) * (low2 + high2);
-        BigInteger<T, 10> z2 = high1 * high2;
-
-        using std::pow;
-        *this = static_cast< BigInteger<T, Base> >((z2 * pow(10, m << 1)) + ((z1 - z2 - z0) * pow(10, m)) + z0);
-    }*/
-
-    size_t n = std::max(a10.size(), b10.size());
-    vector <T> av(a10.size()), bv(b10.size()), resv(a10.size() + b10.size(), 0);
-    for (size_t i = 0; i < a10.size(); ++i) {
-        av[i] = i < a10.size() ? a10.getDigit(i) : 0;
-    }
-    for (size_t i = 0; i < b10.size(); ++i) {
-        bv[i] = i < b10.size() ? b10.getDigit(i) : 0;
-    }
+    vector <T> resv(a10.size() + b10.size(), 0);
 
     for (size_t i = 0; i < a10.size(); ++i) {
         __uint128_t carry = 0;
         for (size_t j = 0; j < b10.size() || carry; ++j) {
-            // __uint128_t temp = resv[i + j] + av[i] * (j < b10.size());
-            // TODO: finish!
+            __uint128_t cur = resv[i + j] + a10.getDigit(i) * (j < b10.size() ? b10.getDigit(j) : 0) + carry;
+            resv[i + j] = cur % 10;
+            carry = cur / 10;
         }
     }
-
-
 
     BigInteger<T, 10> res(resv);
     res.trim();

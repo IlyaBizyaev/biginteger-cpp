@@ -101,10 +101,10 @@ bool RandomTest<T, Base>::testValue(const string &a, const string &b)
     gmpResult = gmpA - gmpB;
     success &= compareResult(biResult, gmpResult);
 
-    /*cout << "Multiplication:\t";
+    cout << "Multiplication:\t";
     biResult = biAConv * biBConv;
     gmpResult = gmpA * gmpB;
-    success &= compare<T, Base>(biResult, gmpResult);*/
+    success &= compareResult(biResult, gmpResult);
 
     return success;
 }
