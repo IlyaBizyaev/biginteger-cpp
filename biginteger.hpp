@@ -62,11 +62,11 @@ public:
     bool isNegative() const;
     void setNegative(bool negative = true);
     bool isZero() const;
+    void trim();
     BigInteger abs() const;
 
 private:
     void setDigit(size_t i, T digit);
-    void trim();
     constexpr static int digitsInT();
     constexpr static int bitsPerDigit();
 

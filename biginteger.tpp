@@ -262,6 +262,7 @@ void split(BigInteger<T, 10> & bigint, size_t m, BigInteger<T, 10> & high, BigIn
     }
 
     low = BigInteger<T, 10>(digitsLow);
+    low.trim();
     high = BigInteger<T, 10>(digitsHigh);
 }
 
@@ -272,26 +273,47 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base>
     BigInteger<T, 10> b10 = static_cast< BigInteger<T, 10> >(other);
     bool negative = (this->isNegative() != other.isNegative());
 
-    if (a10.size() == 1) {
+    /*if (a10.size() == 1) {
         *this = static_cast< BigInteger<T, Base> >(b10 * a10.getDigit(0));
     } else if (b10.size() == 1) {
         *this =  static_cast< BigInteger<T, Base> >(a10 * b10.getDigit(0));
     } else {
         size_t m = std::max(a10.size(), b10.size()) >> 1;
-        /* split the digit sequences about the middle */
         BigInteger<T, 10> high1, low1, high2, low2;
         split(a10, m, high1, low1);
         split(b10, m, high2, low2);
-        /* 3 calls made to numbers approximately half the size */
         BigInteger<T, 10> z0 = low1 * low2;
         BigInteger<T, 10> z1 = (low1 + high1) * (low2 + high2);
         BigInteger<T, 10> z2 = high1 * high2;
 
         using std::pow;
         *this = static_cast< BigInteger<T, Base> >((z2 * pow(10, m << 1)) + ((z1 - z2 - z0) * pow(10, m)) + z0);
+    }*/
+
+    size_t n = std::max(a10.size(), b10.size());
+    vector <T> av(a10.size()), bv(b10.size()), resv(a10.size() + b10.size(), 0);
+    for (size_t i = 0; i < a10.size(); ++i) {
+        av[i] = i < a10.size() ? a10.getDigit(i) : 0;
+    }
+    for (size_t i = 0; i < b10.size(); ++i) {
+        bv[i] = i < b10.size() ? b10.getDigit(i) : 0;
     }
 
-    setNegative(negative);
+    for (size_t i = 0; i < a10.size(); ++i) {
+        __uint128_t carry = 0;
+        for (size_t j = 0; j < b10.size() || carry; ++j) {
+            // __uint128_t temp = resv[i + j] + av[i] * (j < b10.size());
+            // TODO: finish!
+        }
+    }
+
+
+
+    BigInteger<T, 10> res(resv);
+    res.trim();
+    res.setNegative(negative);
+
+    *this = static_cast< BigInteger<T, Base> >(res);
     return *this;
 }
 

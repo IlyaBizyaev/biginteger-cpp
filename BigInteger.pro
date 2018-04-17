@@ -7,6 +7,8 @@ SOURCES += main.cpp
 
 HEADERS += \
     biginteger.hpp \
-    biginteger.tpp
+    biginteger.tpp \
+    randomtest.hpp \
+    randomtest.tpp
 
-LIBS += -lgmp
+LIBS += -lgmp -lgmpxx
