@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <limits>
 #include <ctime>
@@ -115,11 +116,16 @@ bool RandomTest<T, Base>::run()
     std::srand(std::time(0));
     bool success = true;
 
+    std::clock_t begin = clock();
     for (int i = 0; i < 100; ++i) {
         string a = randomBIString();
         string b = randomBIString();
         success &= testValue(a, b);
     }
+    std::clock_t end = clock();
+
+    double elapsed = double(end - begin) / CLOCKS_PER_SEC;
+    cout << "Finished in " << std::setprecision(2) << elapsed << "s" << endl;
 
     return success;
 }
