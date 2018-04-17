@@ -269,27 +269,32 @@ void split(BigInteger<T, 10> & bigint, size_t m, BigInteger<T, 10> & high, BigIn
 template<typename T, size_t Base>
 BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base> &other)
 {
-    BigInteger<T, 10> a10 = static_cast< BigInteger<T, 10> >(*this);
-    BigInteger<T, 10> b10 = static_cast< BigInteger<T, 10> >(other);
-    bool negative = (this->isNegative() != other.isNegative());
+    bool negative = (isNegative() != other.isNegative());
 
-    vector <T> resv(a10.size() + b10.size(), 0);
+    vector<T> av(size()), bv(other.size()), resv(size() + other.size(), 0);
 
-    for (size_t i = 0; i < a10.size(); ++i) {
+    for (size_t i = 0; i < size(); ++i) {
+        av[i] = (*this)[i];
+    }
+
+    for (size_t i = 0; i < other.size(); ++i) {
+        bv[i] = other[i];
+    }
+
+    for (size_t i = 0; i < av.size(); ++i) {
         __uint128_t carry = 0;
-        for (size_t j = 0; j < b10.size() || carry; ++j) {
-            __uint128_t cur = resv[i + j] + a10.getDigit(i) * (j < b10.size() ? b10.getDigit(j) : 0) + carry;
-            resv[i + j] = cur % 10;
-            carry = cur / 10;
+        for (size_t j = 0; j < bv.size() || carry; ++j) {
+            __uint128_t cur = resv[i + j] + av[i] * (j < bv.size() ? bv[j] : 0) + carry;
+            resv[i + j] = cur % Base;
+            carry = cur / Base;
         }
     }
 
-    BigInteger<T, 10> res(resv);
+    BigInteger<T, Base> res(resv);
     res.trim();
     res.setNegative(negative);
 
-    *this = static_cast< BigInteger<T, Base> >(res);
-    return *this;
+    return *this = res;
 }
 
 template<typename T, size_t Base>
