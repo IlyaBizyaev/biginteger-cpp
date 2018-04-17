@@ -230,43 +230,6 @@ BigInteger<T, Base> BigInteger<T, Base>::operator -() const
 }
 
 template<typename T, size_t Base>
-BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const T &other)
-{
-    __uint128_t carry = 0;
-    size_t n = size();
-
-    for (size_t i = 0; i < n || carry; ++i) {
-        __uint128_t temp = (i < n ? getDigit(i) : 0) * other + carry;
-        carry = temp / Base;
-        setDigit(i, temp % Base);
-    }
-
-    trim();
-    setNegative(isNegative() ^ (other < 0));
-    return *this;
-}
-
-template<typename T>
-void split(BigInteger<T, 10> & bigint, size_t m, BigInteger<T, 10> & high, BigInteger<T, 10> & low)
-{
-    vector<T> digitsLow, digitsHigh;
-    for (size_t i = 0; i < bigint.size(); ++i) {
-        if (i < m) {
-            digitsLow.push_back(bigint.getDigit(i));
-        } else {
-            digitsHigh.push_back(bigint.getDigit(i));
-        }
-    }
-    if (digitsHigh.empty()) {
-        digitsHigh.push_back(0);
-    }
-
-    low = BigInteger<T, 10>(digitsLow);
-    low.trim();
-    high = BigInteger<T, 10>(digitsHigh);
-}
-
-template<typename T, size_t Base>
 BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base> &other)
 {
     bool negative = (isNegative() != other.isNegative());
@@ -284,7 +247,7 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base>
     for (size_t i = 0; i < av.size(); ++i) {
         __uint128_t carry = 0;
         for (size_t j = 0; j < bv.size() || carry; ++j) {
-            __uint128_t cur = resv[i + j] + av[i] * (j < bv.size() ? bv[j] : 0) + carry;
+            __uint128_t cur = __uint128_t(resv[i + j]) + __uint128_t(av[i]) * (j < bv.size() ? bv[j] : 0) + carry;
             resv[i + j] = cur % Base;
             carry = cur / Base;
         }
@@ -295,12 +258,6 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base>
     res.setNegative(negative);
 
     return *this = res;
-}
-
-template<typename T, size_t Base>
-BigInteger<T, Base> BigInteger<T, Base>::operator *(const T &other) const
-{
-    return BigInteger(*this) *= other;
 }
 
 template<typename T, size_t Base>

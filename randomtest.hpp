@@ -2,11 +2,12 @@
 #define RANDOMTEST_H
 
 #include <string>
+#include <limits>
 #include <gmpxx.h>
 #include "biginteger.hpp"
 using std::string;
 
-template<typename T, size_t Base>
+template<typename T, size_t Base = std::numeric_limits<T>::max()>
 class RandomTest {
 public:
     bool run();
