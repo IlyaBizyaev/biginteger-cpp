@@ -12,7 +12,8 @@
 const int IO_RADIX = 1000000000;
 
 template<typename T, size_t Base>
-BigInteger<T, Base>::BigInteger(long long value) : m_negative(value < 0)
+template<typename T1, class>
+BigInteger<T, Base>::BigInteger(T1 value) : m_negative(value < 0)
 {
     if (m_negative) {
         value = -value;
@@ -25,6 +26,19 @@ BigInteger<T, Base>::BigInteger(long long value) : m_negative(value < 0)
         value /= Base;
     } while (value);
 }
+
+/*template<typename T, size_t Base>
+template<typename NewT, size_t NewBase>
+BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
+{
+    BigInteger<NewT, NewBase> temp(0), deg(1), base(Base);
+    for (size_t i = 0; i < size(); ++i) {
+        temp += deg * BigInteger<NewT, NewBase>(getDigit(i));
+        deg *= base;
+    }
+    temp.setNegative(isNegative());
+    return temp;
+}*/
 
 template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>

@@ -26,7 +26,8 @@ class BigInteger {
     friend istream & operator >> <>(istream &, BigInteger<T, Base> &);
     template<typename T1, size_t Base1> friend class BigInteger;
 public:
-    explicit BigInteger(long long value = 0);
+    template<typename T1 = long long, class = typename std::enable_if<std::is_integral<T1>::value>::type>
+    explicit BigInteger(T1 value = 0);
     explicit BigInteger(string value);
     template<typename digitT>
     explicit BigInteger(vector<digitT> sparseDigits);
