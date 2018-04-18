@@ -27,7 +27,7 @@ BigInteger<T, Base>::BigInteger(T1 value) : m_negative(value < 0)
     } while (value);
 }
 
-/*template<typename T, size_t Base>
+template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
@@ -38,9 +38,9 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     }
     temp.setNegative(isNegative());
     return temp;
-}*/
+}
 
-template<typename T, size_t Base>
+/*template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
@@ -81,7 +81,7 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     BigInteger<NewT, NewBase> result(newDigits);
     result.setNegative(m_negative);
     return result;
-}
+}*/
 
 template<typename T, size_t Base>
 BigInteger<T, Base>::BigInteger(string value)
@@ -243,6 +243,42 @@ BigInteger<T, Base> BigInteger<T, Base>::operator -() const
     return temp;
 }
 
+template<typename T>
+struct CarryNum
+{
+    T h, l;
+    CarryNum() : h(0), l(0) {}
+    CarryNum(T x) : h(0), l(x) {}
+};
+
+template<typename T, size_t Base>
+inline CarryNum<T> add(CarryNum<T> a, CarryNum<T> b)
+{
+    CarryNum<T> temp;
+    if (a.l >= T(Base) - b.l) {
+        temp.l += a.l - (Base - b.l);
+        temp.h += 1;
+    } else {
+        temp.l += a.l + b.l;
+    }
+    temp.h += a.h + b.h;
+    return temp;
+}
+
+template<typename T, size_t Base>
+inline CarryNum<T> multiply(T a, T b)
+{
+    CarryNum<T> ca(a), temp;
+    while (b) {
+        if (b & 1) {
+            temp = add<T, Base>(temp, ca);
+        }
+        ca = add<T, Base>(ca, ca);
+        b >>= 1;
+    }
+    return temp;
+}
+
 template<typename T, size_t Base>
 BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base> &other)
 {
@@ -259,11 +295,13 @@ BigInteger<T, Base> & BigInteger<T, Base>::operator *=(const BigInteger<T, Base>
     }
 
     for (size_t i = 0; i < av.size(); ++i) {
-        __uint128_t carry = 0;
+        T carry = 0;
         for (size_t j = 0; j < bv.size() || carry; ++j) {
-            __uint128_t cur = __uint128_t(resv[i + j]) + __uint128_t(av[i]) * (j < bv.size() ? bv[j] : 0) + carry;
-            resv[i + j] = cur % Base;
-            carry = cur / Base;
+            CarryNum<T> temp = add<T, Base>(add<T, Base>(resv[i + j], carry),
+                                            multiply<T, Base>(av[i], j < bv.size() ? bv[j] : 0));
+
+            carry = temp.h;
+            resv[i + j] = temp.l;
         }
     }
 
