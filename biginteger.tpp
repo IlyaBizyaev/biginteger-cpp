@@ -27,7 +27,8 @@ BigInteger<T, Base>::BigInteger(T1 value) : m_negative(value < 0)
     } while (value);
 }
 
-template<typename T, size_t Base>
+// Slower, but simpler, radix conversion
+/*template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
@@ -38,9 +39,9 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     }
     temp.setNegative(isNegative());
     return temp;
-}
+}*/
 
-/*template<typename T, size_t Base>
+template<typename T, size_t Base>
 template<typename NewT, size_t NewBase>
 BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
 {
@@ -62,7 +63,7 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
             if (collect >= NewBase) {
                 sparseDigits.push_back(collect / NewBase);
                 collect %= NewBase;
-            } else if (!sparseDigits.empty()){
+            } else if (!sparseDigits.empty()) {
                 sparseDigits.push_back(0);
             }
         }
@@ -81,7 +82,7 @@ BigInteger<T, Base>::operator BigInteger<NewT, NewBase>() const
     BigInteger<NewT, NewBase> result(newDigits);
     result.setNegative(m_negative);
     return result;
-}*/
+}
 
 template<typename T, size_t Base>
 BigInteger<T, Base>::BigInteger(string value)
